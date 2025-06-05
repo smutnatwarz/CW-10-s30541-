@@ -40,6 +40,11 @@ public class DbService (_2019sbdContext data) : IDbService
         });
         var tripcount = await trips.CountAsync();
         var  allpage=Math.Ceiling((double)tripcount/pageSize);
+
+        if (page > allpage)
+        {
+            throw new BadRequestException("Page out of allpages");
+        }
         
         var help=await trips.OrderByDescending(e=>e.DateFrom).Skip(skip).Take(pageSize).ToListAsync();
         var returned = new TripsWithDetailsOnPageGetDto()
@@ -68,6 +73,7 @@ public class DbService (_2019sbdContext data) : IDbService
         }
        
         data.Clients.Remove(client);
+        await data.SaveChangesAsync();
     }
 
     public async Task CreateClientWithTrips(int id, ClientWithTripsCreateDto dto)
@@ -99,8 +105,6 @@ public class DbService (_2019sbdContext data) : IDbService
             await data.Clients.AddAsync(newclient);
             await data.SaveChangesAsync();
 
-
-
             foreach (var idtrip in idtrips)
             {
                 var trip = await data.Trips.FirstOrDefaultAsync(t => t.IdTrip == idtrip);
@@ -111,12 +115,11 @@ public class DbService (_2019sbdContext data) : IDbService
 
                 if (trip.DateFrom <= today)
                 {
-                    throw new BadRequestException($"Trip with {idtrip} already started");
+                    throw new BadRequestException($"Trip with id {idtrip} already started");
                 }
 
                 var clienttripcout = await data.ClientTrips.Where(c => c.IdTrip == idtrip)
-                    .Where(k => k.IdClient == idtrip).CountAsync();
-
+                    .Where(k => k.IdClient == newclient.IdClient).CountAsync();
                 if (clienttripcout > 0)
                 {
                     throw new ConflictException($"client can't be signed two times in the same trip");

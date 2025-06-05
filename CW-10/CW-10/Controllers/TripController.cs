@@ -26,7 +26,13 @@ public class TripController (IDbService service) : ControllerBase
             return BadRequest("Page size must be greater than 0.");
         }
 
-        return Ok(await service.GetAllTripsWithDetailsOnPage( page, pageSize));
+        try
+        {
+            return Ok(await service.GetAllTripsWithDetailsOnPage(page, pageSize));
+        }catch(BadRequestException e)
+        {
+            return BadRequest(e.Message);
+        }
     }
     
     
